@@ -35,72 +35,18 @@ jobs:
         mkdir -p toolchain
         tar -xf toolchain.tar.xz -C toolchain
         echo "=== Toolchain directory structure ==="
-        find toolchain -type d | head -10
+        ls -la toolchain/
     
     - name: Setup Toolchain Environment
       run: |
-        # 检查工具链目录结构
-        echo "=== Toolchain directory structure ==="
-        find toolchain -type d | head -10
-        
-        # 查找所有bin目录并选择包含MIPS编译器的那个
-        BIN_DIRS=$(find toolchain -name "bin" -type d)
-        echo "Found bin directories: $BIN_DIRS"
-        
-        BIN_DIR=""
-        for dir in $BIN_DIRS; do
-          echo "Checking $dir for MIPS compilers..."
-          COMPILERS=$(find "$dir" -name "*mips*gcc*" -type f 2>/dev/null)
-          if [ -n "$COMPILERS" ]; then
-            BIN_DIR="$dir"
-            echo "Found MIPS compilers in: $BIN_DIR"
-            break
-          fi
-        done
-        
-        if [ -z "$BIN_DIR" ]; then
-          echo "Error: No bin directory with MIPS compilers found in toolchain"
-          echo "=== Full toolchain structure ==="
-          find toolchain -type d
-          exit 1
-        fi
-        
-        # 在bin目录查找MIPS编译器
-        COMPILERS=$(find "$BIN_DIR" -name "*mips*gcc*" -type f 2>/dev/null)
-        echo "Found MIPS compilers: $COMPILERS"
-        
-        if [ -z "$COMPILERS" ]; then
-          # 尝试查找任何GCC编译器
-          COMPILERS=$(find "$BIN_DIR" -name "*gcc*" -type f 2>/dev/null)
-          echo "Found any compilers: $COMPILERS"
-        fi
-        
-        if [ -z "$COMPILERS" ]; then
-          echo "Error: No compiler found in toolchain"
-          echo "=== Full toolchain listing ==="
-          find toolchain -name "*gcc*" -type f 2>/dev/null
-          echo "=== Bin directory contents ==="
-          ls -la "$BIN_DIR/"
-          exit 1
-        fi
-        
-        # 使用mipsel-linux-musl-gcc作为主要编译器来确定前缀
-        GCC_COMPILER=$(echo "$COMPILERS" | grep "mipsel-linux-musl-gcc[^-]" | head -n 1)
-        if [ -z "$GCC_COMPILER" ]; then
-          GCC_COMPILER=$(echo "$COMPILERS" | head -n 1)
-        fi
-        COMPILER_NAME=$(basename "$GCC_COMPILER")
-        PREFIX="${COMPILER_NAME%-gcc}"
-        
-        echo "Using compiler prefix: $PREFIX"
-        echo "Compiler: $GCC_COMPILER"
-        echo "Bin directory: $BIN_DIR"
-        
-        # 设置工具链环境变量
+        # 设置工具链环境变量（工具链直接包含bin目录）
         TOOLCHAIN_DIR="$PWD/toolchain"
+        BIN_DIR="$TOOLCHAIN_DIR/bin"
+        PREFIX="mipsel-linux-musl"
+        
         export CROSS_COMPILE="${PREFIX}-"
-        export TARGET_CC="${PREFIX}gcc"
-        export TARGET_CROSS="${PREFIX}"
+        export TARGET_CC="${PREFIX}-gcc"
+        export TARGET_CROSS="${PREFIX}-"
         export PATH="${BIN_DIR}:$PATH"
         
         # 写入到GitHub环境
@@ -119,7 +65,7 @@ jobs:
           echo "✗ Compiler not found: ${CROSS_COMPILE}gcc"
           echo "Looking for: ${CROSS_COMPILE}gcc"
           echo "Available files:"
-          ls -la "${BIN_DIR}/" | grep gcc
+          ls -la "${BIN_DIR}/" | grep gcc || echo "Bin directory not found"
           exit 1
         fi
     

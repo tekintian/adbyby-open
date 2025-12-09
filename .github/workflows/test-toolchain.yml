@@ -20,62 +20,45 @@ jobs:
         
         echo "=== Extracting toolchain ==="
         mkdir -p toolchain
-        tar -tf toolchain.tar.xz | head -20
         tar -xf toolchain.tar.xz -C toolchain
         
         echo "=== Toolchain directory structure ==="
         find toolchain -type d | head -10
         find toolchain -type f -name "*gcc*" | head -10
         
-        echo "=== Looking for bin directory ==="
-        BIN_DIRS=$(find toolchain -name "bin" -type d)
-        echo "Found bin directories: $BIN_DIRS"
+        echo "=== Setup toolchain environment ==="
+        TOOLCHAIN_DIR="$PWD/toolchain"
+        BIN_DIR="$TOOLCHAIN_DIR/bin"
+        PREFIX="mipsel-linux-musl"
         
-        BIN_DIR=""
-        for dir in $BIN_DIRS; do
-          echo "Checking $dir for MIPS compilers..."
-          COMPILERS=$(find "$dir" -name "*mips*gcc*" -type f 2>/dev/null)
-          if [ -n "$COMPILERS" ]; then
-            BIN_DIR="$dir"
-            echo "Found MIPS compilers in: $BIN_DIR"
-            break
+        export CROSS_COMPILE="${PREFIX}-"
+        export TARGET_CC="${PREFIX}-gcc"
+        export TARGET_CROSS="${PREFIX}-"
+        export PATH="${BIN_DIR}:$PATH"
+        
+        echo "Using PREFIX: $PREFIX"
+        echo "Using BIN_DIR: $BIN_DIR"
+        
+        # 验证编译器
+        if command -v "${CROSS_COMPILE}gcc" >/dev/null 2>&1; then
+          echo "✓ Compiler found: ${CROSS_COMPILE}gcc"
+          "${CROSS_COMPILE}gcc" --version
+          
+          echo "=== Testing simple compilation ==="
+          echo "int main(){return 0;}" > test.c
+          "${CROSS_COMPILE}gcc" -o test test.c
+          if [ -f "test" ]; then
+            echo "✓ Simple compilation successful"
+            file test
+            rm -f test test.c
+          else
+            echo "✗ Simple compilation failed"
+            exit 1
           fi
-        done
-        
-        if [ -z "$BIN_DIR" ]; then
-          echo "No bin directory with MIPS compilers found"
+        else
+          echo "✗ Compiler not found: ${CROSS_COMPILE}gcc"
+          echo "Looking for: ${CROSS_COMPILE}gcc"
+          echo "Available files in bin directory:"
+          ls -la "${BIN_DIR}/" 2>/dev/null || echo "Bin directory not found"
           exit 1
-        fi
-        
-        if [ -n "$BIN_DIR" ]; then
-          echo "=== Bin directory contents ==="
-          ls -la "$BIN_DIR/"
-          
-          echo "=== Testing compiler ==="
-          COMPILERS=$(find "$BIN_DIR" -name "*gcc*" -type f 2>/dev/null)
-          echo "Found compilers:"
-          echo "$COMPILERS"
-          
-          if [ -n "$COMPILERS" ]; then
-            # 使用mipsel-linux-musl-gcc作为主要编译器
-            GCC_COMPILER=$(echo "$COMPILERS" | grep "mipsel-linux-musl-gcc[^-]" | head -n 1)
-            if [ -z "$GCC_COMPILER" ]; then
-              GCC_COMPILER=$(echo "$COMPILERS" | head -n 1)
-            fi
-            COMPILER_NAME=$(basename "$GCC_COMPILER")
-            PREFIX="${COMPILER_NAME%-gcc}"
-            
-            echo "Using compiler prefix: $PREFIX"
-            echo "Testing main compiler: $GCC_COMPILER"
-            "$GCC_COMPILER" --version
-            
-            # 测试前缀是否正确
-            echo "Testing prefix compilation: ${PREFIX}-gcc"
-            if command -v "${PREFIX}-gcc" >/dev/null 2>&1; then
-              echo "✓ Prefix works: ${PREFIX}-gcc"
-              "${PREFIX}-gcc" --version
-            else
-              echo "✗ Prefix failed: ${PREFIX}-gcc"
-            fi
-          fi
         fi
