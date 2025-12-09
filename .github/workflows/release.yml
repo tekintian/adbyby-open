@@ -27,23 +27,98 @@ jobs:
     
     - name: Setup Toolchain Environment
       run: |
-        echo "TOOLCHAIN_DIR=$PWD/toolchain" >> $GITHUB_ENV
-        echo "CROSS_COMPILE=$PWD/toolchain/bin/mipsel-linux-musl-" >> $GITHUB_ENV
-        echo "$PWD/toolchain/bin" >> $GITHUB_PATH
+        # 检查工具链目录结构
+        echo "=== Toolchain directory structure ==="
+        ls -la toolchain/
+        
+        # 查找bin目录
+        BIN_DIR=$(find toolchain -name "bin" -type d | head -1)
+        echo "Found bin directory: $BIN_DIR"
+        
+        if [ -z "$BIN_DIR" ]; then
+          echo "Error: bin directory not found in toolchain"
+          exit 1
+        fi
+        
+        # 列出bin目录内容
+        echo "=== Bin directory contents ==="
+        ls -la "$BIN_DIR/"
+        
+        # 查找MIPS编译器
+        COMPILERS=$(find "$BIN_DIR" -name "*mips*gcc*" -type f 2>/dev/null)
+        echo "Found compilers: $COMPILERS"
+        
+        if [ -z "$COMPILERS" ]; then
+          # 尝试查找任何GCC编译器
+          COMPILERS=$(find "$BIN_DIR" -name "*gcc*" -type f 2>/dev/null)
+          echo "Found any compilers: $COMPILERS"
+        fi
+        
+        if [ -z "$COMPILERS" ]; then
+          echo "Error: No compiler found in toolchain"
+          exit 1
+        fi
+        
+        # 使用第一个找到的编译器
+        FIRST_COMPILER=$(echo "$COMPILERS" | head -n 1)
+        COMPILER_NAME=$(basename "$FIRST_COMPILER")
+        PREFIX="${COMPILER_NAME%-gcc}"
+        
+        echo "Using compiler prefix: $PREFIX"
+        echo "Compiler: $FIRST_COMPILER"
+        
+        # 设置工具链环境变量
+        TOOLCHAIN_DIR="$PWD/toolchain"
+        export CROSS_COMPILE="${BIN_DIR}/${PREFIX}-"
+        export PATH="${BIN_DIR}:$PATH"
+        
+        # 写入到GitHub环境
+        echo "TOOLCHAIN_DIR=${TOOLCHAIN_DIR}" >> $GITHUB_ENV
+        echo "CROSS_COMPILE=${CROSS_COMPILE}" >> $GITHUB_ENV
+        echo "${BIN_DIR}" >> $GITHUB_PATH
+        
+        # 验证编译器
+        if [ -f "${CROSS_COMPILE}gcc" ]; then
+          echo "✓ Compiler found: ${CROSS_COMPILE}gcc"
+          "${CROSS_COMPILE}gcc" --version
+        else
+          echo "✗ Compiler not found: ${CROSS_COMPILE}gcc"
+          exit 1
+        fi
     
     - name: Build Release Package
       run: |
+        # 显示编译环境信息
+        echo "=== Build Environment ==="
+        echo "CROSS_COMPILE: $CROSS_COMPILE"
+        echo "PATH: $PATH"
+        
+        # 清理并编译
         make clean
         make compile
         
         # 检查编译结果
-        if [ ! -f "adbyby" ] && [ -f "src/adbyby" ]; then
+        if [ -f "adbyby" ]; then
+          echo "✓ 编译成功"
+          file adbyby
+        elif [ -f "src/adbyby" ]; then
+          echo "✓ 在 src 目录找到可执行文件"
           cp src/adbyby adbyby
-        fi
-        
-        if [ ! -f "adbyby" ]; then
-          echo "编译失败，找不到可执行文件"
-          exit 1
+          file adbyby
+        else
+          echo "✗ 编译失败，尝试使用src目录Makefile直接编译"
+          cd src
+          make clean
+          make CC="${CROSS_COMPILE}gcc" STRIP="${CROSS_COMPILE}strip"
+          if [ -f "adbyby" ]; then
+            cp adbyby ../
+            echo "✓ 使用src目录编译成功"
+            file adbyby
+          else
+            echo "✗ 编译完全失败"
+            exit 1
+          fi
+          cd ..
         fi
         
         # 创建发布包
