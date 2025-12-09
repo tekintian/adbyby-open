@@ -1,1 +1,39 @@
+# 编译产物
 adbyby
+src/obj/
+*.o
+*.elf
+*.bin
+
+# 工具链
+toolchain/
+*.tar.xz
+
+# 压缩包
+*.tar.gz
+*.zip
+*.7z
+
+# IDE和编辑器
+.sublime-workspace
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.log
+*.pid
+.DS_Store
+Thumbs.db
+
+# 构建目录
+build/
+dist/
+release_package/
+
+# 环境文件
+.env
+.env.local

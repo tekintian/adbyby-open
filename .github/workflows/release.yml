@@ -1,0 +1,107 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Environment
+      run: sudo apt-get update && sudo apt-get install -y wget xz-utils make gcc
+    
+    - name: Download Toolchain
+      run: |
+        TOOLCHAIN_URL="https://github.com/tekintian/padavan/releases/download/toolchain/mipsel-linux-musl.tar.xz"
+        wget -O toolchain.tar.xz "$TOOLCHAIN_URL"
+        mkdir -p toolchain
+        tar -xf toolchain.tar.xz -C toolchain --strip-components=1
+    
+    - name: Setup Toolchain Environment
+      run: |
+        echo "TOOLCHAIN_DIR=$PWD/toolchain" >> $GITHUB_ENV
+        echo "CROSS_COMPILE=$PWD/toolchain/bin/mipsel-linux-musl-" >> $GITHUB_ENV
+        echo "$PWD/toolchain/bin" >> $GITHUB_PATH
+    
+    - name: Build Release Package
+      run: |
+        make clean
+        make compile
+        
+        # 检查编译结果
+        if [ ! -f "adbyby" ] && [ -f "src/adbyby" ]; then
+          cp src/adbyby adbyby
+        fi
+        
+        if [ ! -f "adbyby" ]; then
+          echo "编译失败，找不到可执行文件"
+          exit 1
+        fi
+        
+        # 创建发布包
+        mkdir -p release_package
+        
+        # 复制所有必要文件
+        cp adbyby release_package/
+        cp *.sh release_package/ 2>/dev/null || true
+        cp *.conf release_package/ 2>/dev/null || true
+        cp -r share release_package/
+        cp install.sh release_package/ 2>/dev/null || true
+        cp README.md release_package/ 2>/dev/null || true
+        
+        # 创建版本信息文件
+        echo "AdByBy-Open Release" > release_package/VERSION.txt
+        echo "Version: ${{ github.ref_name }}" >> release_package/VERSION.txt
+        echo "Build Date: $(date)" >> release_package/VERSION.txt
+        echo "Git Commit: ${{ github.sha }}" >> release_package/VERSION.txt
+        echo "Architecture: mipsel" >> release_package/VERSION.txt
+    
+    - name: Create Archive
+      run: |
+        cd release_package
+        tar -czf ../adbyby-open-${{ github.ref_name }}-mipsel.tar.gz *
+        cd ..
+        
+        # 生成校验和
+        sha256sum *.tar.gz > checksums.txt
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: AdByBy-Open ${{ github.ref_name }}
+        body: |
+          ## AdByBy-Open Release ${{ github.ref_name }}
+          
+          🚀 **新版本发布！**
+          
+          **下载文件：**
+          - `adbyby-open-${{ github.ref_name }}-mipsel.tar.gz` - 主程序包
+          - `checksums.txt` - 文件校验和
+          
+          **安装方法：**
+          1. 下载 `adbyby-open-${{ github.ref_name }}-mipsel.tar.gz`
+          2. 上传到路由器并解压
+          3. 手动复制文件到相应目录
+          
+          **更新内容：**
+          ${{ github.event.head_commit.message }}
+          
+          **构建信息：**
+          - 版本：${{ github.ref_name }}
+          - 架构：MIPSEL (Padavan 固件)
+          - 工具链：mipsel-linux-musl
+        files: |
+          *.tar.gz
+          checksums.txt
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

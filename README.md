@@ -15,16 +15,30 @@ K2P路由固件集成: https://github.com/tekintian/padavan
 
 ## 编译安装
 
+### 自动编译（推荐）
+
+项目已配置GitHub Actions自动编译，会自动下载交叉编译工具链并构建MIPS版本的可执行文件。
+
+**自动触发条件：**
+- 推送到 `main` 或 `master` 分支
+- 创建 Release
+- 手动触发 Workflow
+
+**获取编译版本：**
+1. 访问项目的 [Actions 页面](https://github.com/用户名/adbyby-open/actions)
+2. 下载最新构建的 `adbyby-open-*.tar.gz` 文件
+3. 解压后直接使用编译好的 `adbyby` 可执行文件
+
 ### 本地开发编译（用于测试）
 ```bash
-cd trunk/user/adbyby/src
+cd src
 make clean && make
 ```
 
 ### 路由器交叉编译（生产环境）
 
 **重要：** 为了在MIPS架构的路由器上运行，必须使用项目提供的交叉编译工具链进行编译。
-工具链下载地址 https://github.com/tekintian/padavan/releases/tag/toolchain
+工具链下载地址 https://github.com/tekintian/padavan/releases/download/toolchain/mipsel-linux-musl.tar.xz
 
 ```bash
 cd trunk/user/adbyby/src
@@ -280,6 +294,82 @@ make debug
 
 然后在浏览器中设置代理为`127.0.0.1:8888`进行测试。
 
+
+## GitHub CI/CD
+
+### 工作流程
+
+项目配置了两个主要的GitHub Actions工作流程：
+
+#### 1. 自动构建工作流 (`build.yml`)
+- **触发条件**: 推送到主分支、PR、发布、手动触发
+- **功能**: 
+  - 自动下载MIPS交叉编译工具链
+  - 编译生成MIPS架构的adbyby可执行文件
+  - 打包为完整的发布包（包含配置、脚本、文档等）
+  - 创建GitHub Release并上传构建产物
+
+#### 2. 发布工作流 (`release.yml`)
+- **触发条件**: 推送版本标签 (如 `v1.0.0`)
+- **功能**:
+  - 专门用于版本发布
+  - 包含安装脚本和校验和
+  - 生成完整的发布说明
+
+### 使用方法
+
+#### 方法一：下载预编译版本
+```bash
+# 下载最新构建
+wget https://github.com/tekintian/adbyby-open/releases/latest/download/adbyby-open-*.tar.gz
+
+# 或从Actions页面下载
+# https://github.com/tekintian/adbyby-open/actions
+
+# 解压
+tar -xzf adbyby-open-*.tar.gz
+cd adbyby-open/
+
+# 使用自动安装脚本
+./install_adbyby.sh
+```
+
+#### 方法二：手动构建
+```bash
+# 克隆项目
+git clone https://github.com/tekintian/adbyby-open.git
+cd adbyby-open
+
+# 本地交叉编译
+wget https://github.com/tekintian/padavan/releases/download/toolchain/mipsel-linux-musl.tar.xz
+tar -xf mipsel-linux-musl.tar.xz
+export CROSS_COMPILE=$PWD/toolchain/bin/mipsel-linux-musl-
+make clean && make compile
+```
+
+### 构建产物
+
+每次构建会生成以下文件：
+- `adbyby-open-mipsel-数字.tar.gz` - 完整的发布包
+  - `bin/adbyby` - 主程序（MIPS架构）
+  - `scripts/` - 安装和配置脚本
+  - `config/` - 配置文件
+  - `share/` - 规则文件和数据
+  - `install_adbyby.sh` - 自动安装脚本
+  - `build_info.txt` - 构建信息
+
+### 版本管理
+
+- **自动版本**: 每次推送到主分支会自动创建版本 `v{构建编号}`
+- **标签版本**: 推送标签如 `v1.0.0` 会创建正式发布版本
+- **校验和**: 每个版本都包含SHA256校验和文件
+
+### 构建环境
+
+- **运行环境**: Ubuntu latest
+- **工具链**: mipsel-linux-musl (自动下载)
+- **编译器**: mipsel-linux-musl-gcc
+- **目标架构**: MIPS32 (little-endian)
 
 ## 与我联系
 tekintian@gmail.com

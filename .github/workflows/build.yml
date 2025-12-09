@@ -1,0 +1,178 @@
+name: Build and Release AdByBy
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        arch: [mipsel]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget xz-utils make gcc
+    
+    - name: Download Toolchain
+      run: |
+        TOOLCHAIN_URL="https://github.com/tekintian/padavan/releases/download/toolchain/mipsel-linux-musl.tar.xz"
+        wget -O toolchain.tar.xz "$TOOLCHAIN_URL"
+        mkdir -p toolchain
+        tar -xf toolchain.tar.xz -C toolchain --strip-components=1
+        ls -la toolchain/
+    
+    - name: Setup Toolchain Environment
+      run: |
+        echo "TOOLCHAIN_DIR=$PWD/toolchain" >> $GITHUB_ENV
+        echo "CROSS_COMPILE=$PWD/toolchain/bin/mipsel-linux-musl-" >> $GITHUB_ENV
+        echo "$PWD/toolchain/bin" >> $GITHUB_PATH
+        
+        # 验证工具链
+        ls -la toolchain/bin/
+        toolchain/bin/mipsel-linux-musl-gcc --version || echo "Compiler check failed"
+    
+    - name: Compile AdByBy
+      run: |
+        make clean
+        make info
+        make compile
+        
+        # 检查编译结果
+        if [ -f "adbyby" ]; then
+          echo "✓ 编译成功"
+          file adbyby
+          ls -la adbyby
+        else
+          echo "✗ 编译失败，尝试使用 src 目录下的可执行文件"
+          ls -la src/
+          if [ -f "src/adbyby" ]; then
+            cp src/adbyby adbyby
+            echo "✓ 使用 src 目录下的可执行文件"
+            file adbyby
+          else
+            echo "✗ 找不到可执行文件"
+            exit 1
+          fi
+        fi
+    
+    - name: Prepare Package
+      run: |
+        mkdir -p release_package/adbyby-open
+        mkdir -p release_package/adbyby-open/bin
+        mkdir -p release_package/adbyby-open/scripts
+        mkdir -p release_package/adbyby-open/config
+        mkdir -p release_package/adbyby-open/share
+        mkdir -p release_package/adbyby-open/share/data
+        mkdir -p release_package/adbyby-open/share/doc
+        
+        # 复制可执行文件
+        cp adbyby release_package/adbyby-open/bin/ || {
+          echo "尝试从 src 目录复制"
+          cp src/adbyby release_package/adbyby-open/bin/ || exit 1
+        }
+        
+        # 复制根目录脚本
+        cp *.sh release_package/adbyby-open/scripts/ 2>/dev/null || true
+        
+        # 复制配置文件
+        cp *.conf release_package/adbyby-open/config/ 2>/dev/null || true
+        
+        # 复制 share 目录内容
+        cp -r share/* release_package/adbyby-open/share/
+        
+        # 复制安装脚本
+        cp install.sh release_package/adbyby-open/ 2>/dev/null || true
+        
+        # 复制说明文档
+        cp *.md release_package/adbyby-open/ 2>/dev/null || true
+        
+        # 创建版本信息文件
+        echo "Build Information:" > release_package/adbyby-open/build_info.txt
+        echo "Build Date: $(date)" >> release_package/adbyby-open/build_info.txt
+        echo "Git Commit: $(git rev-parse HEAD)" >> release_package/adbyby-open/build_info.txt
+        echo "Git Branch: $(git rev-parse --abbrev-ref HEAD)" >> release_package/adbyby-open/build_info.txt
+        echo "Architecture: ${{ matrix.arch }}" >> release_package/adbyby-open/build_info.txt
+        echo "Toolchain: https://github.com/tekintian/padavan/releases/download/toolchain/mipsel-linux-musl.tar.xz" >> release_package/adbyby-open/build_info.txt
+        
+        # 设置执行权限
+        chmod +x release_package/adbyby-open/bin/adbyby
+        chmod +x release_package/adbyby-open/scripts/*.sh 2>/dev/null || true
+        chmod +x release_package/adbyby-open/share/*.sh 2>/dev/null || true
+        
+        # 显示包内容
+        echo "=== Package Contents ==="
+        find release_package/adbyby-open -type f | head -20
+    
+    - name: Create Archive
+      run: |
+        cd release_package
+        tar -czf ../adbyby-open-${{ matrix.arch }}-${{ github.run_number }}.tar.gz adbyby-open/
+        cd ..
+        
+        # 显示压缩包信息
+        ls -la *.tar.gz
+        tar -tzf adbyby-open-${{ matrix.arch }}-${{ github.run_number }}.tar.gz | head -20
+    
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: adbyby-open-${{ matrix.arch }}-${{ github.run_number }}
+        path: adbyby-open-${{ matrix.arch }}-${{ github.run_number }}.tar.gz
+        retention-days: 30
+    
+    - name: Create Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        name: AdByBy-Open ${{ github.run_number }}
+        body: |
+          ## AdByBy-Open 自动编译版本
+          
+          **构建信息：**
+          - 构建编号：${{ github.run_number }}
+          - 提交哈希：${{ github.sha }}
+          - 构建时间：${{ github.event.head_commit.timestamp }}
+          
+          **架构支持：**
+          - MIPSEL (适用于 Padavan 固件路由器)
+          
+          **包含内容：**
+          - `bin/adbyby` - 主程序可执行文件
+          - `scripts/` - 安装和配置脚本
+          - `config/` - 配置文件
+          - `share/` - 规则文件和数据文件
+          - `build_info.txt` - 构建信息
+          
+          **安装说明：**
+          1. 下载压缩包并解压
+          2. 将 `bin/adbyby` 复制到路由器的 `/usr/share/adbyby/` 目录
+          3. 将配置文件和脚本复制到相应目录
+          4. 设置执行权限
+          5. 启动服务
+          
+          **注意事项：**
+          - 本版本专为 MIPSEL 架构的路由器编译
+          - 需要 Padavan 固件支持
+          - 详细安装说明请参考项目文档
+        files: |
+          adbyby-open-${{ matrix.arch }}-${{ github.run_number }}.tar.gz
+        draft: false
+        prerelease: false
+        tag_name: v${{ github.run_number }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
