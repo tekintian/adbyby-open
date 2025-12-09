@@ -57,8 +57,25 @@ jobs:
           echo "$COMPILERS"
           
           if [ -n "$COMPILERS" ]; then
-            FIRST_COMPILER=$(echo "$COMPILERS" | head -n 1)
-            echo "Testing compiler: $FIRST_COMPILER"
-            "$FIRST_COMPILER" --version
+            # 使用mipsel-linux-musl-gcc作为主要编译器
+            GCC_COMPILER=$(echo "$COMPILERS" | grep "mipsel-linux-musl-gcc[^-]" | head -n 1)
+            if [ -z "$GCC_COMPILER" ]; then
+              GCC_COMPILER=$(echo "$COMPILERS" | head -n 1)
+            fi
+            COMPILER_NAME=$(basename "$GCC_COMPILER")
+            PREFIX="${COMPILER_NAME%-gcc}"
+            
+            echo "Using compiler prefix: $PREFIX"
+            echo "Testing main compiler: $GCC_COMPILER"
+            "$GCC_COMPILER" --version
+            
+            # 测试前缀是否正确
+            echo "Testing prefix compilation: ${PREFIX}-gcc"
+            if command -v "${PREFIX}-gcc" >/dev/null 2>&1; then
+              echo "✓ Prefix works: ${PREFIX}-gcc"
+              "${PREFIX}-gcc" --version
+            else
+              echo "✗ Prefix failed: ${PREFIX}-gcc"
+            fi
           fi
         fi
