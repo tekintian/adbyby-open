@@ -1,0 +1,13 @@
+! Version: 202312251231
+! Title: Adbyby Basic Ad Filtering Rules
+! Expires: 2 days (update frequency)
+! Homepage: https://gitee.com/tekintian/adt-rules/raw/master/adbyby/lazy.txt
+!
+!----GNU LGPL Licensed, NO WARRANTY but Best Wishes----
+!-- exclude rule
+@@||127.0.*
+@@||192.168.*
+@@||172.17.*
+@@||10.0.*
+@@||bootcss.com/*
+@@||jsdelivr.net/*
