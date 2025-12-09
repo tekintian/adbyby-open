@@ -33,31 +33,30 @@ jobs:
         TOOLCHAIN_URL="https://github.com/tekintian/padavan/releases/download/toolchain/mipsel-linux-musl.tar.xz"
         wget -O toolchain.tar.xz "$TOOLCHAIN_URL"
         mkdir -p toolchain
-        tar -xf toolchain.tar.xz -C toolchain --strip-components=1
-        ls -la toolchain/
+        tar -xf toolchain.tar.xz -C toolchain
+        echo "=== Toolchain directory structure ==="
+        find toolchain -type d | head -10
     
     - name: Setup Toolchain Environment
       run: |
         # 检查工具链目录结构
         echo "=== Toolchain directory structure ==="
-        ls -la toolchain/
+        find toolchain -type d | head -10
         
-        # 查找bin目录
+        # 查找bin目录（现在应该在子目录中）
         BIN_DIR=$(find toolchain -name "bin" -type d | head -1)
         echo "Found bin directory: $BIN_DIR"
         
         if [ -z "$BIN_DIR" ]; then
           echo "Error: bin directory not found in toolchain"
+          echo "=== Full toolchain structure ==="
+          find toolchain -type d
           exit 1
         fi
         
-        # 列出bin目录内容
-        echo "=== Bin directory contents ==="
-        ls -la "$BIN_DIR/"
-        
-        # 查找MIPS编译器
+        # 在bin目录查找MIPS编译器
         COMPILERS=$(find "$BIN_DIR" -name "*mips*gcc*" -type f 2>/dev/null)
-        echo "Found compilers: $COMPILERS"
+        echo "Found MIPS compilers: $COMPILERS"
         
         if [ -z "$COMPILERS" ]; then
           # 尝试查找任何GCC编译器
@@ -67,6 +66,10 @@ jobs:
         
         if [ -z "$COMPILERS" ]; then
           echo "Error: No compiler found in toolchain"
+          echo "=== Full toolchain listing ==="
+          find toolchain -name "*gcc*" -type f 2>/dev/null
+          echo "=== Bin directory contents ==="
+          ls -la "$BIN_DIR/"
           exit 1
         fi
         
@@ -77,23 +80,28 @@ jobs:
         
         echo "Using compiler prefix: $PREFIX"
         echo "Compiler: $FIRST_COMPILER"
+        echo "Bin directory: $BIN_DIR"
         
         # 设置工具链环境变量
         TOOLCHAIN_DIR="$PWD/toolchain"
-        export CROSS_COMPILE="${BIN_DIR}/${PREFIX}-"
+        export CROSS_COMPILE="${PREFIX}-"
         export PATH="${BIN_DIR}:$PATH"
         
         # 写入到GitHub环境
         echo "TOOLCHAIN_DIR=${TOOLCHAIN_DIR}" >> $GITHUB_ENV
         echo "CROSS_COMPILE=${CROSS_COMPILE}" >> $GITHUB_ENV
+        echo "BIN_DIR=${BIN_DIR}" >> $GITHUB_ENV
         echo "${BIN_DIR}" >> $GITHUB_PATH
         
         # 验证编译器
-        if [ -f "${CROSS_COMPILE}gcc" ]; then
+        if command -v "${CROSS_COMPILE}gcc" >/dev/null 2>&1; then
           echo "✓ Compiler found: ${CROSS_COMPILE}gcc"
           "${CROSS_COMPILE}gcc" --version
         else
           echo "✗ Compiler not found: ${CROSS_COMPILE}gcc"
+          echo "Looking for: ${CROSS_COMPILE}gcc"
+          echo "Available files:"
+          ls -la "${BIN_DIR}/" | grep gcc
           exit 1
         fi
     
