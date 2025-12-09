@@ -1,0 +1,64 @@
+name: Test Toolchain Download
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  test-toolchain:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Download and Test Toolchain
+      run: |
+        echo "=== Downloading toolchain ==="
+        TOOLCHAIN_URL="https://github.com/tekintian/padavan/releases/download/toolchain/mipsel-linux-musl.tar.xz"
+        wget -O toolchain.tar.xz "$TOOLCHAIN_URL"
+        
+        echo "=== Extracting toolchain ==="
+        mkdir -p toolchain
+        tar -tf toolchain.tar.xz | head -20
+        tar -xf toolchain.tar.xz -C toolchain
+        
+        echo "=== Toolchain directory structure ==="
+        find toolchain -type d | head -10
+        find toolchain -type f -name "*gcc*" | head -10
+        
+        echo "=== Looking for bin directory ==="
+        BIN_DIRS=$(find toolchain -name "bin" -type d)
+        echo "Found bin directories: $BIN_DIRS"
+        
+        BIN_DIR=""
+        for dir in $BIN_DIRS; do
+          echo "Checking $dir for MIPS compilers..."
+          COMPILERS=$(find "$dir" -name "*mips*gcc*" -type f 2>/dev/null)
+          if [ -n "$COMPILERS" ]; then
+            BIN_DIR="$dir"
+            echo "Found MIPS compilers in: $BIN_DIR"
+            break
+          fi
+        done
+        
+        if [ -z "$BIN_DIR" ]; then
+          echo "No bin directory with MIPS compilers found"
+          exit 1
+        fi
+        
+        if [ -n "$BIN_DIR" ]; then
+          echo "=== Bin directory contents ==="
+          ls -la "$BIN_DIR/"
+          
+          echo "=== Testing compiler ==="
+          COMPILERS=$(find "$BIN_DIR" -name "*gcc*" -type f 2>/dev/null)
+          echo "Found compilers:"
+          echo "$COMPILERS"
+          
+          if [ -n "$COMPILERS" ]; then
+            FIRST_COMPILER=$(echo "$COMPILERS" | head -n 1)
+            echo "Testing compiler: $FIRST_COMPILER"
+            "$FIRST_COMPILER" --version
+          fi
+        fi

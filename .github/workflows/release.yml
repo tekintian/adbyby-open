@@ -29,12 +29,23 @@ jobs:
     
     - name: Setup Toolchain Environment
       run: |
-        # 查找bin目录（现在应该在子目录中）
-        BIN_DIR=$(find toolchain -name "bin" -type d | head -1)
-        echo "Found bin directory: $BIN_DIR"
+        # 查找所有bin目录并选择包含MIPS编译器的那个
+        BIN_DIRS=$(find toolchain -name "bin" -type d)
+        echo "Found bin directories: $BIN_DIRS"
+        
+        BIN_DIR=""
+        for dir in $BIN_DIRS; do
+          echo "Checking $dir for MIPS compilers..."
+          COMPILERS=$(find "$dir" -name "*mips*gcc*" -type f 2>/dev/null)
+          if [ -n "$COMPILERS" ]; then
+            BIN_DIR="$dir"
+            echo "Found MIPS compilers in: $BIN_DIR"
+            break
+          fi
+        done
         
         if [ -z "$BIN_DIR" ]; then
-          echo "Error: bin directory not found in toolchain"
+          echo "Error: No bin directory with MIPS compilers found in toolchain"
           echo "=== Full toolchain structure ==="
           find toolchain -type d
           exit 1
