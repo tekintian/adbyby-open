@@ -97,16 +97,65 @@ jobs:
           cd ..
         fi
         
-        # 创建发布包
-        mkdir -p release_package
+        # 创建发布包（按照 Makefile 中的 romfs 结构）
+        mkdir -p release_package/usr/share/adbyby
+        mkdir -p release_package/usr/share/adbyby/data
+        mkdir -p release_package/usr/share/adbyby/doc
+        mkdir -p release_package/usr/bin
+        mkdir -p release_package/etc_ro
         
-        # 复制所有必要文件
-        cp adbyby release_package/
-        cp *.sh release_package/ 2>/dev/null || true
-        cp *.conf release_package/ 2>/dev/null || true
-        cp -r share release_package/
-        cp install.sh release_package/ 2>/dev/null || true
-        cp README.md release_package/ 2>/dev/null || true
+        # 复制可执行文件到 /usr/share/adbyby/
+        cp adbyby release_package/usr/share/adbyby/ || {
+          echo "尝试从 src 目录复制"
+          cp src/adbyby release_package/usr/share/adbyby/ || exit 1
+        }
+        
+        # 复制配置文件（根据 Makefile install-romfs 目标）
+        cp share/adblack.conf release_package/usr/share/adbyby/
+        cp share/adesc.conf release_package/usr/share/adbyby/
+        cp share/adhook.ini release_package/usr/share/adbyby/
+        cp share/adhost.conf release_package/usr/share/adbyby/
+        cp share/blockip.conf release_package/usr/share/adbyby/
+        cp share/rules.txt release_package/usr/share/adbyby/
+        cp share/update.info release_package/usr/share/adbyby/
+        cp share/user.action release_package/usr/share/adbyby/
+        cp share/dnsmasq.adblock release_package/usr/share/adbyby/
+        cp share/dnsmasq.ads release_package/usr/share/adbyby/
+        cp share/dnsmasq.esc release_package/usr/share/adbyby/
+        cp share/firewall.include release_package/usr/share/adbyby/
+        
+        # 复制脚本文件（带执行权限）
+        cp share/adblock.sh release_package/usr/share/adbyby/
+        cp share/adbyby.sh release_package/usr/share/adbyby/
+        cp share/adbybyfirst.sh release_package/usr/share/adbyby/
+        cp share/adbybyupdate.sh release_package/usr/share/adbyby/
+        cp share/admem.sh release_package/usr/share/adbyby/
+        cp share/adupdate.sh release_package/usr/share/adbyby/
+        
+        # 复制 data 目录文件
+        cp share/data/lazy.txt release_package/usr/share/adbyby/data/
+        cp share/data/rules.txt release_package/usr/share/adbyby/data/
+        cp share/data/user.txt release_package/usr/share/adbyby/data/
+        cp share/data/video.txt release_package/usr/share/adbyby/data/
+        
+        # 复制 doc 目录文件
+        cp share/doc/hidecss.js release_package/usr/share/adbyby/doc/
+        
+        # 复制自定义配置脚本到 /etc_ro/
+        cp adbyby_rules.sh release_package/etc_ro/
+        cp adbyby_adblack.sh release_package/etc_ro/
+        cp adbyby_adesc.sh release_package/etc_ro/
+        cp adbyby_adhost.sh release_package/etc_ro/
+        cp adbyby_host.sh release_package/etc_ro/
+        cp adbyby_blockip.sh release_package/etc_ro/
+        
+        # 复制主脚本到 /usr/bin/
+        cp adbyby.sh release_package/usr/bin/adbyby.sh
+        
+        # 复制安装脚本和说明文档
+        cp install.sh release_package/
+        cp README.md release_package/
+        cp QUICKSTART.md release_package/
         
         # 创建版本信息文件
         echo "AdByBy-Open Release" > release_package/VERSION.txt
@@ -114,6 +163,17 @@ jobs:
         echo "Build Date: $(date)" >> release_package/VERSION.txt
         echo "Git Commit: ${{ github.sha }}" >> release_package/VERSION.txt
         echo "Architecture: mipsel" >> release_package/VERSION.txt
+        echo "Toolchain: https://github.com/tekintian/padavan/releases/download/toolchain/mipsel-linux-musl.tar.xz" >> release_package/VERSION.txt
+        
+        # 设置执行权限
+        chmod +x release_package/usr/share/adbyby/adbyby
+        chmod +x release_package/usr/share/adbyby/*.sh
+        chmod +x release_package/usr/bin/adbyby.sh
+        chmod +x release_package/etc_ro/*.sh
+        chmod +x release_package/install.sh
+        
+        # 创建安装说明
+        printf '%s\n' 'AdByBy-Open 安装说明' '===================' '' '目录结构：' '- usr/share/adbyby/      # 主程序和配置文件' '- usr/share/adbyby/data/  # 数据文件' '- usr/share/adbyby/doc/   # 文档文件' '- usr/bin/               # 可执行脚本' '- etc_ro/                # 配置脚本' '' '安装步骤：' '1. 将 usr/share/adbyby/ 目录复制到路由器的 /usr/share/adbyby/' '2. 将 usr/bin/adbyby.sh 复制到路由器的 /usr/bin/adbyby.sh' '3. 将 etc_ro/ 下的脚本复制到路由器的 /etc_ro/' '4. 设置执行权限：chmod +x /usr/share/adbyby/adbyby /usr/share/adbyby/*.sh /usr/bin/adbyby.sh /etc_ro/*.sh' '5. 运行安装脚本：./install.sh' '' '快速安装：' '运行根目录下的 install.sh 脚本即可自动安装。' '' "版本信息：${{ github.ref_name }}" > release_package/INSTALLATION.txt
     
     - name: Create Archive
       run: |
