@@ -100,7 +100,7 @@ file adbyby
 |------|----------|----------|
 | **架构** | x86_64 (Darwin) | MIPS32 (路由器) |
 | **兼容性** | 仅开发测试 | 路由器运行 |
-| **文件大小** | ~71KB | ~32KB |
+| **文件大小** | ~71KB | ~24KB |
 | **链接库** | libSystem.B.dylib | ld-musl-mipsel.so.1 |
 
 编译完成后会生成`adbyby`可执行文件，可以替换原有的`share/adbyby`文件用于路由器固件。
@@ -113,7 +113,7 @@ file adbyby
 ./adbyby
 
 # 指定端口
-./adbyby -p 8080
+./adbyby -p 8118
 
 # 调试模式
 ./adbyby -d
