@@ -44,11 +44,8 @@ mkdir -p /usr/share/adbyby/doc
 cp adbyby /usr/share/adbyby/
 chmod +x /usr/share/adbyby/adbyby
 
-# 3. 复制配置和数据文件
-cp -r share/* /usr/share/adbyby/
-chmod +x /usr/share/adbyby/*.sh
 
-# 4. 复制配置脚本
+# 3. 复制配置脚本
 cp *.sh /etc_ro/ 2>/dev/null || true
 ```
 

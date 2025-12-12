@@ -183,7 +183,6 @@ jobs:
         
         # 设置执行权限
         chmod +x release_package/adbyby-open/usr/share/adbyby/adbyby
-        chmod +x release_package/adbyby-open/usr/share/adbyby/*.sh
         chmod +x release_package/adbyby-open/usr/bin/adbyby.sh
         chmod +x release_package/adbyby-open/etc_ro/*.sh
         chmod +x release_package/adbyby-open/install.sh

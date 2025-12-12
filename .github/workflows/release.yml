@@ -159,13 +159,12 @@ jobs:
         
         # 设置执行权限
         chmod +x release_package/usr/share/adbyby/adbyby
-        chmod +x release_package/usr/share/adbyby/*.sh
         chmod +x release_package/usr/bin/adbyby.sh
         chmod +x release_package/etc_ro/*.sh
         chmod +x release_package/install.sh
         
         # 创建安装说明
-        printf '%s\n' 'AdByBy-Open 安装说明' '===================' '' '目录结构：' '- usr/share/adbyby/      # 主程序和配置文件' '- usr/share/adbyby/data/  # 数据文件' '- usr/share/adbyby/doc/   # 文档文件' '- usr/bin/               # 可执行脚本' '- etc_ro/                # 配置脚本' '' '安装步骤：' '1. 将 usr/share/adbyby/ 目录复制到路由器的 /usr/share/adbyby/' '2. 将 usr/bin/adbyby.sh 复制到路由器的 /usr/bin/adbyby.sh' '3. 将 etc_ro/ 下的脚本复制到路由器的 /etc_ro/' '4. 设置执行权限：chmod +x /usr/share/adbyby/adbyby /usr/share/adbyby/*.sh /usr/bin/adbyby.sh /etc_ro/*.sh' '5. 运行安装脚本：./install.sh' '' '快速安装：' '运行根目录下的 install.sh 脚本即可自动安装。' '' "版本信息：${{ github.ref_name }}" > release_package/INSTALLATION.txt
+        printf '%s\n' 'AdByBy-Open 安装说明' '===================' '' '目录结构：' '- usr/share/adbyby/      # 主程序和配置文件' '- usr/share/adbyby/data/  # 数据文件' '- usr/share/adbyby/doc/   # 文档文件' '- usr/bin/               # 可执行脚本' '- etc_ro/                # 配置脚本' '' '安装步骤：' '1. 将 usr/share/adbyby/ 目录复制到路由器的 /usr/share/adbyby/' '2. 将 usr/bin/adbyby.sh 复制到路由器的 /usr/bin/adbyby.sh' '3. 将 etc_ro/ 下的脚本复制到路由器的 /etc_ro/' '4. 设置执行权限：chmod +x /usr/share/adbyby/adbyby /usr/bin/adbyby.sh /etc_ro/*.sh' '5. 运行安装脚本：./install.sh' '' '快速安装：' '运行根目录下的 install.sh 脚本即可自动安装。' '' "版本信息：${{ github.ref_name }}" > release_package/INSTALLATION.txt
     
     - name: Create Archive
       run: |
