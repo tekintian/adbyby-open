@@ -119,18 +119,9 @@ jobs:
         cp share/rules.txt release_package/usr/share/adbyby/
         cp share/update.info release_package/usr/share/adbyby/
         cp share/user.action release_package/usr/share/adbyby/
-        cp share/dnsmasq.adblock release_package/usr/share/adbyby/
         cp share/dnsmasq.ads release_package/usr/share/adbyby/
         cp share/dnsmasq.esc release_package/usr/share/adbyby/
         cp share/firewall.include release_package/usr/share/adbyby/
-        
-        # 复制脚本文件（带执行权限）
-        cp share/adblock.sh release_package/usr/share/adbyby/
-        cp share/adbyby.sh release_package/usr/share/adbyby/
-        cp share/adbybyfirst.sh release_package/usr/share/adbyby/
-        cp share/adbybyupdate.sh release_package/usr/share/adbyby/
-        cp share/admem.sh release_package/usr/share/adbyby/
-        cp share/adupdate.sh release_package/usr/share/adbyby/
         
         # 复制 data 目录文件
         cp share/data/lazy.txt release_package/usr/share/adbyby/data/
@@ -148,6 +139,7 @@ jobs:
         cp adbyby_adhost.sh release_package/etc_ro/
         cp adbyby_host.sh release_package/etc_ro/
         cp adbyby_blockip.sh release_package/etc_ro/
+         cp adbyby_antiad.sh release_package/adbyby-open/etc_ro/
         
         # 复制主脚本到 /usr/bin/
         cp adbyby.sh release_package/usr/bin/adbyby.sh
