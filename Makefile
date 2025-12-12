@@ -97,18 +97,9 @@ ifeq ($(BUILD_MODE),romfs)
 	$(ROMFSINST) "$(THISDIR)/share/rules.txt" /usr/share/adbyby/ || true
 	$(ROMFSINST) "$(THISDIR)/share/update.info" /usr/share/adbyby/ || true
 	$(ROMFSINST) "$(THISDIR)/share/user.action" /usr/share/adbyby/ || true
-	$(ROMFSINST) "$(THISDIR)/share/dnsmasq.adblock" /usr/share/adbyby/ || true
 	$(ROMFSINST) "$(THISDIR)/share/dnsmasq.ads" /usr/share/adbyby/ || true
 	$(ROMFSINST) "$(THISDIR)/share/dnsmasq.esc" /usr/share/adbyby/ || true
 	$(ROMFSINST) "$(THISDIR)/share/firewall.include" /usr/share/adbyby/ || true
-
-	# 安装脚本文件（带执行权限）
-	$(ROMFSINST) -p +x "$(THISDIR)/share/adblock.sh" /usr/share/adbyby/ || true
-	$(ROMFSINST) -p +x "$(THISDIR)/share/adbyby.sh" /usr/share/adbyby/ || true
-	$(ROMFSINST) -p +x "$(THISDIR)/share/adbybyfirst.sh" /usr/share/adbyby/ || true
-	$(ROMFSINST) -p +x "$(THISDIR)/share/adbybyupdate.sh" /usr/share/adbyby/ || true
-	$(ROMFSINST) -p +x "$(THISDIR)/share/admem.sh" /usr/share/adbyby/ || true
-	$(ROMFSINST) -p +x "$(THISDIR)/share/adupdate.sh" /usr/share/adbyby/ || true
 
 	# 安装data目录文件
 	$(ROMFSINST) "$(THISDIR)/share/data/lazy.txt" /usr/share/adbyby/data/ || true
@@ -125,6 +116,7 @@ ifeq ($(BUILD_MODE),romfs)
 	$(ROMFSINST) "$(THISDIR)/adbyby_adesc.sh" /etc_ro/ || true
 	$(ROMFSINST) "$(THISDIR)/adbyby_adhost.sh" /etc_ro/ || true
 	$(ROMFSINST) "$(THISDIR)/adbyby_host.sh" /etc_ro/ || true
+	$(ROMFSINST) "$(THISDIR)/adbyby_antiad.sh" /etc_ro/ || true
 	$(ROMFSINST) "$(THISDIR)/adbyby_blockip.sh" /etc_ro/ || true
 	# 复制主脚本到/usr/bin
 	$(ROMFSINST) -p +x "$(THISDIR)/adbyby.sh" /usr/bin/adbyby.sh || true
