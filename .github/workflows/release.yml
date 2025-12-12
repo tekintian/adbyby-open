@@ -139,7 +139,7 @@ jobs:
         cp adbyby_adhost.sh release_package/etc_ro/
         cp adbyby_host.sh release_package/etc_ro/
         cp adbyby_blockip.sh release_package/etc_ro/
-         cp adbyby_antiad.sh release_package/adbyby-open/etc_ro/
+        cp adbyby_antiad.sh release_package/etc_ro/
         
         # 复制主脚本到 /usr/bin/
         cp adbyby.sh release_package/usr/bin/adbyby.sh
